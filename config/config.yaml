@@ -1,0 +1,33 @@
+backtesting:
+  enabled: false
+  start_date: "2024-12-09"
+  end_date: "2024-12-13"
+  initial_balance: 1.0
+  trade_size: 0.2
+
+trading:
+  initial_balance: 1.0
+  trade_size: 0.2
+  max_positions: 4
+  profit_target_1: 0.03
+  profit_target_2: 0.007
+  cumulative_profit_target: 0.035
+  fib_entry_threshold: -0.01
+  max_candle_range: 0.016
+  countdown_periods: 60
+  require_fib50_cross: true
+  lookback_periods: 24
+
+paths:
+  #historical_data: '../price_data/5min_ohlc_data.csv'
+  live_data: '../price_data/prices_2024-12-13.csv'
+  trade_history: 'trade_history.csv'
+  chart_output: 'trading_charts/trading_chart.png'
+
+websocket:
+  port: 8765
+  host: "localhost"
+
+  logging:
+  level: "INFO"
+  file: "trading_bot.log"
