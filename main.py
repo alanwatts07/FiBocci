@@ -319,8 +319,8 @@ class TradingBot:
                         )
                         # Update live chart with latest trades and positions
                         self.live_chart.update_trades(
-                            trades=self.position_manager.trade_history,
-                            positions=self.position_manager.positions
+                        trades=self.position_manager.trade_history,
+                        positions=self.position_manager.positions
                         )
                            # Update trade statistics
                         stats = self.position_manager.get_trade_statistics()
@@ -333,7 +333,7 @@ class TradingBot:
                             positions=self.position_manager.positions,
                             balance=self.position_manager.balance_sol
                         )
-                        #await asyncio.sleep(1) #uncomment for step-through 
+                        #await asyncio.sleep(0.3) #uncomment for step-through 
                 except ValueError as e:
                     self.logger.print_error(f"Invalid data at row {idx}: {str(e)}")
                     continue

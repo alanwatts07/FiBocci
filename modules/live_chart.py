@@ -18,6 +18,7 @@ class LiveChart:
     def __init__(self, port=8051):
         self.app = dash.Dash(__name__)
         self.port = port
+        self.positions = []  # Initialize open positions list
         self.trades = []  
         self.data_queue = queue.Queue()
         self.df = pd.DataFrame(columns=['timestamp', 'open', 'high', 'low', 'close'])
@@ -63,7 +64,7 @@ class LiveChart:
             
             fig = self.create_figure()  # This will include the current candle and all previous ones
             return fig
-
+        
         @self.app.callback(
             Output('view-state', 'data'),
             [Input('live-chart', 'relayoutData')],
@@ -101,11 +102,11 @@ class LiveChart:
     def create_figure(self): 
         """Create the plotly figure""" 
         fig = make_subplots(rows=2, cols=1,  
-                           shared_xaxes=True, 
-                           vertical_spacing=0.02, 
-                           subplot_titles=('Price', 'Time'), 
-                           row_heights=[0.8, 0.2]) 
- 
+                        shared_xaxes=True, 
+                        vertical_spacing=0.02, 
+                        subplot_titles=('Price', 'Time'), 
+                        row_heights=[0.8, 0.2]) 
+
         # Add completed candles 
         if not self.df.empty: 
             fig.add_trace( 
@@ -119,8 +120,8 @@ class LiveChart:
                 ), 
                 row=1, col=1 
             ) 
- 
-                # Add current forming candle if exists 
+
+        # Add current forming candle if exists 
         if self.current_candle['timestamp'] is not None:
             offset_time = timedelta(seconds=300)  # Adjust as needed
             print("Adding Current Candle:", self.current_candle)
@@ -137,7 +138,7 @@ class LiveChart:
                 ),
                 row=1, col=1
             )
- 
+
             # Add price line for current candle 
             if self.current_candle['prices']: 
                 times = [self.current_candle['timestamp'] + timedelta(seconds=300)  
@@ -151,6 +152,7 @@ class LiveChart:
                         name='Current Price' 
                     ), row=1, col=1
                 ) 
+
         # Add Fibonacci levels 
         for name, series in self.fib_levels.items():
             if series is not None:
@@ -164,23 +166,46 @@ class LiveChart:
                     ), row=1, col=1
                 )
 
- 
-        # Add Trade Markers 
-        for trade in self.trades: 
-            fig.add_trace( 
-                go.Scatter( 
-                    x=[trade['entry_time'], trade['exit_time']], 
-                    y=[trade['entry_price'], trade['exit_price']], 
-                    mode='markers+lines', 
-                    name=f"Trade ({trade['profit']:.2%})", 
-                    line=dict(color='green' if trade['profit'] > 0 else 'red'), 
-                    marker=dict( 
-                        symbol=['triangle-up', 'triangle-down'], 
-                        size=10, 
-                        color=['lime', 'red'] 
-                    ) 
-                ), row=1, col=1 
-            ) 
+        # Add Trade Markers for Closed Trades
+        for trade in self.trades:
+            fig.add_trace(
+                go.Scatter(
+                    x=[trade['entry_time'], trade['exit_time']],
+                    y=[trade['entry_price'], trade['exit_price']],
+                    mode='markers+lines',
+                    name=f"Trade ({trade['profit']:.2%})",
+                    line=dict(color='green' if trade['profit'] > 0 else 'red'),
+                    marker=dict(
+                        symbol=['triangle-up', 'triangle-down'],
+                        size=10,
+                        color=['lime', 'red']
+                    )
+                ), row=1, col=1
+            )
+
+        # **Add Trade Markers for Open Positions**
+        current_time = datetime.now()
+        for position in self.positions:
+            entry_time = position['entry_time']
+            entry_price = position['entry_price']
+            # Use the latest close price as the current price
+            current_price = self.current_candle['close'] if self.current_candle['close'] is not None else entry_price
+            
+            fig.add_trace(
+                go.Scatter(
+                    x=[entry_time, current_time],
+                    y=[entry_price, current_price],
+                    mode='lines+markers',
+                    name='Open Position',
+                    line=dict(color='blue', dash='dot'),
+                    marker=dict(
+                        symbol=['triangle-up', 'circle'],
+                        size=10,
+                        color=['cyan', 'cyan']
+                    ),
+                    showlegend=True
+                ), row=1, col=1
+            )
 
         # Update layout
         fig.update_layout(
@@ -190,8 +215,7 @@ class LiveChart:
             template='plotly_dark',
             paper_bgcolor='#1a1a1a',
             plot_bgcolor='#1a1a1a',
-            uirevision='constant',  # Add this to maintain zoom state
-            # Add buttons for timeframe selection
+            uirevision='constant',
             updatemenus=[{
                 'buttons': [
                     {'label': '1h', 'method': 'relayout','args': [{'xaxis.range': [datetime.now() - timedelta(hours=1), datetime.now()]}]},
@@ -226,7 +250,7 @@ class LiveChart:
     def update_trades(self, trades, positions): 
         """Store trade markers to be plotted""" 
         self.trades = trades  # Store trades data to be used in 
-
+        self.positions = positions  # Store open positions
 
     def update_price(self, timestamp, price):
         current_time = pd.to_datetime(arg=timestamp, format='mixed')
