@@ -12,7 +12,6 @@ from modules.data_handler import DataHandler
 from modules.trade_manager import TradeManager
 from modules.position_manager import PositionManager
 from modules.indicators import FibonacciCalculator
-from modules.websocket_handler import WebsocketHandler
 from utils.helpers import load_config, format_timestamp
 from modules.logger import BotLogger
 from modules.live_chart import LiveChart
@@ -32,7 +31,6 @@ class TradingBot:
         self.data_handler.initialize_from_csv(self.config['paths']['live_data'])
         self.fib_calculator = FibonacciCalculator(self.config)
         self.position_manager = PositionManager(self.config)
-        self.websocket_handler = WebsocketHandler(self.config)
         self.running = False
 
         self.tasks = []
@@ -72,8 +70,8 @@ class TradingBot:
                         await self.run_backtest(historical_data) 
                         """
             # Start websocket server for live chart 
-            websocket_task = self.loop.create_task(self.websocket_handler.start_server()) 
-            self.tasks.append(websocket_task) 
+            """  websocket_task = self.loop.create_task(self.websocket_handler.start_server()) 
+                self.tasks.append(websocket_task) """ 
             
             # Start live market monitoring 
             market_monitor_task = self.loop.create_task(self.monitor_market(self.config['paths']['live_data'])) 

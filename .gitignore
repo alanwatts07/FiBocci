@@ -5,3 +5,4 @@ chart_server.py
 utils/__pycache__
 modules/__pycache__
 config/__pycache__
+venv/
