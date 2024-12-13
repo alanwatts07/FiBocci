@@ -265,12 +265,22 @@ class TradingBot:
 
             # Read CSV with explicit column names
             df = pd.read_csv(
-                csv_path,
-                skiprows=range(1, self.data_handler.last_processed_line + 1) if self.data_handler.last_processed_line > 0 else None,
-                names=['timestamp', 'price', 'input_amount', 'output_amount', 'price_impact', 'fee'],
-                header=0 if self.data_handler.last_processed_line == 0 else None
+            csv_path,
+            skiprows=range(1, self.data_handler.last_processed_line + 1) if self.data_handler.last_processed_line > 0 else None,
+            header=0  # Assume the first row contains headers
             )
-            
+
+            # Ensure 'timestamp' and 'price' columns exist
+            if 'timestamp' not in df.columns or 'price' not in df.columns:
+                self.logger.print_error("CSV file must contain 'timestamp' and 'price' columns.")
+                return False
+
+            # Parse the 'timestamp' column
+            df['timestamp'] = pd.to_datetime(df['timestamp'], format='mixed')
+            # Ensure 'price' is a float
+            df['price'] = df['price'].astype(float)
+
+                
             if df.empty:
                 self.logger.print_info("[yellow]No new data to process[/yellow]")
                 return False
