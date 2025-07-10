@@ -98,8 +98,7 @@ class DataHandler:
             if not df.empty:
                 first_timestamp = df['timestamp'].iloc[0]
                 # If current_bucket is None, initialize it with the first 5-min bucket from the historical data
-                self.current_bucket = first_timestamp.floor('5min')
-                self.logger.print_info(f"DataHandler Init: Initial current_bucket set to {self.current_bucket} based on first historical data point.")
+            self.current_bucket = first_timestamp.floor('5min').tz_localize('UTC') # <--- ADD .tz_localize('UTC')                     self.logger.print_info(f"DataHandler Init: Initial current_bucket set to {self.current_bucket} based on first historical data point.")
             
             # Process all historical data point by point to build 5-min candles
             for idx, row in df.iterrows():
