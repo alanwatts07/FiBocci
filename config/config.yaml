@@ -20,13 +20,13 @@ trading:
 
 paths:
   #historical_data: '../price_data/5min_ohlc_data.csv'
-  live_data: '../price_data/prices_2024-12-13.csv'
+  live_data: 'sol_usdc_price_history_jupiter.csv'
   trade_history: 'trade_history.csv'
   chart_output: 'trading_charts/trading_chart.png'
 
 websocket:
   port: 8765
-  host: "localhost"
+  host: "0.0.0.0"
 
   logging:
   level: "INFO"
