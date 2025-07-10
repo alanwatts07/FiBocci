@@ -1,4 +1,4 @@
-# WIF/SOL Live Trading Bot
+# SOL/USDC Live Trading Bot
 
 Welcome to the **SOL/USDC Live Trading Bot** project! This bot is designed to automate trading of the SOL/USDC pair (or any pair) using a Fibonacci-based strategy. It includes features such as live charting with real-time Fibonacci levels, trade management, and performance statistics.
 
