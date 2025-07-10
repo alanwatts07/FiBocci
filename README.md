@@ -14,6 +14,7 @@ This guide provides the essential steps to get your price tracker and trading bo
   * Your `sol_usd_tracker.py` script.
   * Your `main.py` script (with the `start` command).
   * All required Python packages installed in your virtual environment.
+  * (You can do a pip install -r requirements.txt once you activate your venv)
   * Your virtual environment activated.
 
 ### Step 1: Start the Price Tracker
