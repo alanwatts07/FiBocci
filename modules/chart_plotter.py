@@ -39,7 +39,7 @@ class ChartPlotter:
                 positions, 
                 trade_history, 
                 filename,
-                title=f'WIF/SOL Historical Data ({len(five_min_data)} candles)'
+                title=f'SOL/USDC Historical Data ({len(five_min_data)} candles)'
             )
             
             # Also save as latest historical
@@ -145,7 +145,7 @@ class ChartPlotter:
             if title:
                 plt.title(title)
             else:
-                plt.title(f'WIF/SOL 5-Minute Chart ({len(data)} candles)')
+                plt.title(f'SOL/USDC 5-Minute Chart ({len(data)} candles)')
             
             plt.xlabel('Time')
             plt.ylabel('Price')

@@ -298,7 +298,7 @@ class LiveChart:
 
         # Update layout
         fig.update_layout(
-            title_text="WIF/SOL Live Trading Chart", # Still hardcoded, but you can make it dynamic
+            title_text="SOL/USDC Live Trading Chart", # Still hardcoded, but you can make it dynamic
             xaxis_rangeslider_visible=False,
             height=800,
             template='plotly_dark',
