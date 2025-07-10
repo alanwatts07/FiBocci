@@ -4,6 +4,55 @@ Welcome to the **SOL/USDC Live Trading Bot** project! This bot is designed to au
 
 ![Live Trading Chart](Screenshot.png)
 
+Okay, got it\! You just want the super minimalist quick start, focusing purely on the commands to run.
+
+Here it is:
+
+-----
+
+## Quick Start Guide: Fibonacci Bot (Minimalist)
+
+This guide provides the essential steps to get your price tracker and trading bot running.
+
+### What You'll Need
+
+  * Your `sol_usd_tracker.py` script.
+  * Your `main.py` script (with the `start` command).
+  * All required Python packages installed in your virtual environment.
+  * Your virtual environment activated.
+
+### Step 1: Start the Price Tracker
+
+Open your terminal, navigate to your project directory, activate your virtual environment, and run the price tracker in the background:
+
+```bash
+# Optional: Clean old price data for a fresh start
+rm sol_usdc_price_history_jupiter.csv
+
+# Start the price tracker in the background
+python3 sol_usd_tracker.py
+```
+
+  * **Wait 5-10 minutes** to allow the tracker to generate enough initial data.
+
+### Step 2: Start the Trading Bot & Live Chart
+
+Open a **new terminal tab** (or window), navigate to your project directory, activate your virtual environment, and run the bot:
+
+```bash
+# Make sure you are in a NEW terminal tab/window
+python3 main.py start
+```
+
+  * Your live chart will open in your web browser, typically at `http://localhost:8051`.
+
+### How to Stop
+
+1.  **Stop the Trading Bot:** Go to the terminal tab running `main.py start` and press `Ctrl + C`.
+2.  **Stop the Price Tracker:**
+      * Find its process ID: `ps aux | grep "sol_usd_tracker.py"`
+      * Terminate it: `kill <PID>` (replace `<PID>` with the ID you found).
+      * *Alternatively (if all else fails):* Close your WSL terminal or run `wsl --shutdown` from Windows PowerShell/CMD to stop all WSL processes.
 ## Table of Contents
 
 - [Features](#features)
