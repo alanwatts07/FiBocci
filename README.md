@@ -4,11 +4,6 @@ Welcome to the **SOL/USDC Live Trading Bot** project! This bot is designed to au
 
 ![Live Trading Chart](Screenshot.png)
 
-Okay, got it\! You just want the super minimalist quick start, focusing purely on the commands to run.
-
-Here it is:
-
------
 
 ## Quick Start Guide: Fibonacci Bot (Minimalist)
 
