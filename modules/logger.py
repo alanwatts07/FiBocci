@@ -63,7 +63,7 @@ Time: {datetime.now().strftime('%H:%M:%S')}
 Status: [green]{self.status_data['status']}[/green]
 Price: {f"${self.status_data['price']:.8f}" if self.status_data['price'] is not None else '-'}
 Positions: {self.status_data['positions']}
-Balance: SOL {self.status_data['balance']:.3f}
+Balance: USDC {self.status_data['balance']:.3f}
 [bold cyan]═══════════════════════[/bold cyan]
             """
             
