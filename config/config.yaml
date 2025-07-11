@@ -6,8 +6,8 @@ backtesting:
   trade_size: 0.2
 
 trading:
-  initial_balance: 1000.0
-  trade_size: 20
+  initial_balance: 10000.0
+  trade_size: 2000
   max_positions: 4
   profit_target_1: 0.03
   profit_target_2: 0.007

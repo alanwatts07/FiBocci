@@ -511,13 +511,15 @@ class LiveChart:
             html.H4("Trade Statistics", style={'marginBottom': '5px'}),
             html.P(f"Total Trades: {stats.get('total_trades', 0)}", style={'fontSize': '0.9em'}),
             html.P(f"Win Rate: {stats.get('win_rate', 0.0):.2f}%", style={'fontSize': '0.9em'}),
-            html.P(f"Total Profit: {stats.get('total_profit', 0.0):.2f}%", style={'fontSize': '0.9em'}),
-            html.P(f"Average Profit per Trade: {stats.get('average_profit', 0.0):.2f}%", style={'fontSize': '0.9em'}),
-            html.P(f"Best Trade: {stats.get('best_trade', 0.0):.2f}%", style={'fontSize': '0.9em'}),
-            html.P(f"Worst Trade: {stats.get('worst_trade', 0.0):.2f}%", style={'fontSize': '0.9em'}),
-            html.P(f"Total SOL Profit: {stats.get('total_sol_profit', 0.0):.3f} SOL", style={'fontSize': '0.9em'}),
+            # --- Corrected formatting for percentages ---
+            html.P(f"Total Profit: {stats.get('total_profit_pct', 0.0) * 100:.2f}%", style={'fontSize': '0.9em'}),
+            html.P(f"Average Profit per Trade: {stats.get('average_profit_pct', 0.0) * 100:.2f}%", style={'fontSize': '0.9em'}),
+            html.P(f"Best Trade: {stats.get('best_trade_pct', 0.0) * 100:.2f}%", style={'fontSize': '0.9em'}),
+            html.P(f"Worst Trade: {stats.get('worst_trade_pct', 0.0) * 100:.2f}%", style={'fontSize': '0.9em'}),
+            # --- Displaying Total USDC Profit directly ---
+            html.P(f"Total USDC Profit: {stats.get('total_usdc_profit', 0.0):.3f} USDC", style={'fontSize': '0.9em'}),
         ], style={'border': '1px solid #444', 'padding': '10px', 'borderRadius': '5px', 'backgroundColor': '#222'})
-
+        
     def _format_armed_status_html(self, is_armed_status): 
         status_color = 'lightgreen' if is_armed_status else 'lightcoral'
         return html.Div([
