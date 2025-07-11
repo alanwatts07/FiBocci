@@ -29,11 +29,12 @@ class PositionManager:
         wif_amount = self.trade_size_sol / price
         
         position = {
+            'id': len(self.trade_history) + len(self.positions) + 1, # Simple unique ID
             'entry_time': timestamp,
             'entry_price': price,
             'wif_amount': wif_amount,
             'sol_spent': self.trade_size_sol,
-            'trigger_low': price
+            'trigger_low': price # Keep this if used for stop-loss or trailing logic
         }
         
         self.positions.append(position)

@@ -9,14 +9,14 @@ trading:
   initial_balance: 1.0
   trade_size: 0.2
   max_positions: 4
-  profit_target_1: 0.03
+  profit_target_1: 0.01
   profit_target_2: 0.007
   cumulative_profit_target: 0.035
   fib_entry_threshold: -0.005
   fib_reset_threshold: 0.01
   max_candle_range: 0.016
-  countdown_periods: 60
-  require_fib50_cross: true
+  countdown_periods: 10
+  require_fib50_cross: false
   lookback_periods: 24
 
 chart_styles:
