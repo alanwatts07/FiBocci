@@ -55,6 +55,23 @@ class PositionManager:
         """Close a specific position (selling SOL, receiving USDC)"""
         if position not in self.positions:
             return False, "Position not found"
+        # --- LOCATION FOR SELL TRANSACTION ---
+        #
+        # Here, you would typically make the API call to your exchange to place a SELL order.
+        # Example (conceptual):
+        # success, order_id = self.exchange_api_client.place_sell_order(
+        #     symbol='SOL/USDC',
+        #     amount=position['sol_amount'], # Amount of SOL to sell
+        #     price=current_price,          # The price you want to sell at
+        #     order_type='market'           # or 'limit'
+        # )
+        #
+        # You would handle the API response (e.g., check for success, get filled price)
+        # and then use the *actual filled price and amount* for subsequent profit calculations.
+        #
+        # For now, your calculation assumes instant fill at current_price.
+        #
+        # --- END LOCATION FOR SELL TRANSACTION ---
 
         usdc_received_from_sale = position['sol_amount'] * current_price
 

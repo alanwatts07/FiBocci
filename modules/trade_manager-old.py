@@ -53,6 +53,24 @@ class TradeManager:
 
         # Check entry conditions
         if self.entry_switch_armed and self._entry_conditions_met(candle, five_min_data):
+             # --- LOCATION FOR BUY TRANSACTION ---
+            #
+            # Here, you would typically make the API call to your exchange to place a BUY order.
+            # Example (conceptual):
+            # success, order_id = self.exchange_api_client.place_buy_order(
+            #     symbol='SOL/USDC',
+            #     amount=self.config['trading']['trade_size'], # This is your USDC amount
+            #     price=current_candle_close, # Or current_candle_open, depending on your entry
+            #     order_type='market' # or 'limit'
+            # )
+            #
+            # You would handle the API response (e.g., check for success, get filled price)
+            # and then pass the *actual filled price and amount* to add_position.
+            #
+            # For now, your add_position is simulating this, assuming instant fill at current_candle_close.
+            # In a live environment, you'd want the actual filled price.
+            
+            # --- END LOCATION FOR BUY TRANSACTION ---
             success, result = self.position_manager.add_position(current_price, candle.name)
             if success:
                 self.logger.print_info(f"🟢 Entry triggered at {current_price:.8f}")
