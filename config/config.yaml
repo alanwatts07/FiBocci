@@ -12,7 +12,8 @@ trading:
   profit_target_1: 0.03
   profit_target_2: 0.007
   cumulative_profit_target: 0.035
-  fib_entry_threshold: -0.01
+  fib_entry_threshold: -0.003
+  fib_reset_threshold: 0.02
   max_candle_range: 0.016
   countdown_periods: 60
   require_fib50_cross: true

@@ -25,7 +25,7 @@ class TradingBot:
     def __init__(self, config_path='config/config.yaml'):
         """Initialize the trading bot with all its components"""
         self.config = load_config(config_path)
-        self.logger = BotLogger() # Initialize BotLogger instance here
+        self.logger = BotLogger()
         self.shutdown_event = asyncio.Event()
         
         # Initialize components
@@ -69,8 +69,7 @@ class TradingBot:
         """Start the trading bot"""
         try:
             self.running = True
-            # CRITICAL FIX: Call start_ui *before* any other logging attempts
-            self.logger.start_ui() 
+            self.logger.start_ui()
             self.logger.print_info("[bold green]Initializing Trading Bot...[/bold green]")
 
             # CRITICAL FIX: Start LiveChart in a separate thread
@@ -256,9 +255,7 @@ class TradingBot:
                     price = row['price']
 
                     # Update LiveChart with current price for every 1-min data point
-                    # fib_data_for_chart is not available here yet, so pass None for now.
-                    # It will be updated later when a new 5-min candle is formed.
-                    self.live_chart.update_data({'timestamp': timestamp, 'price': price}, fib_data=None) 
+                    self.live_chart.update_data({'timestamp': timestamp, 'price': price}) 
                     self.logger.print_info(f"Processing 1-min: Time={timestamp}, Price={price:.8f}")
 
                     # Process the price update through DataHandler to aggregate into 5-min candles
@@ -269,18 +266,12 @@ class TradingBot:
                         self.logger.print_info(f"Process Loop: New 5-min candle formed at {new_candle.index[0]}. Close: {new_candle['close'].iloc[-1]:.8f}")
                         
                         # Update five minute data in DataHandler and get the updated DataFrame.
-                        # This also ensures the data_handler.five_min_data is up-to-date with the new candle.
-                        self.data_handler.five_min_data = self.data_handler.update_data(new_candle) 
+                        updated_five_min_data = self.data_handler.update_data(new_candle) 
                         
                         # Calculate fib levels based on the updated five_min_data
-                        # fib_levels_calculated now holds the DataFrame with OHLC + original fibs + WMA fibs
-                        fib_levels_calculated = self.fib_calculator.calculate_fib_levels(self.data_handler.five_min_data)
-
-                        # CRITICAL FIX: Update DataHandler's internal DataFrame with the one containing Fib levels
-                        # This ensures trade_manager receives data with fibs.
-                        self.data_handler.five_min_data = fib_levels_calculated 
-
-                        # Prepare fib_data for LiveChart (assuming it expects individual values for latest levels)
+                        fib_levels_calculated = self.fib_calculator.calculate_fib_levels(updated_five_min_data)
+                        
+                        # Prepare fib_data for LiveChart
                         fib_data_for_chart = {
                             'Fib 0': fib_levels_calculated['wma_fib_0'].iloc[-1] if 'wma_fib_0' in fib_levels_calculated.columns and not pd.isna(fib_levels_calculated['wma_fib_0'].iloc[-1]) else None,
                             'Fib 50': fib_levels_calculated['wma_fib_50'].iloc[-1] if 'wma_fib_50' in fib_levels_calculated.columns and not pd.isna(fib_levels_calculated['wma_fib_50'].iloc[-1]) else None,
@@ -290,22 +281,22 @@ class TradingBot:
                         # Update LiveChart with the completed candle and its fib levels.
                         self.live_chart.update_data(new_candle.iloc[0], fib_data_for_chart)
 
-                        # --- Update last_candle_below_fib for TradeManager ---
-                        # This should reflect the state of the *previous* candle.
-                        # Ensure enough data exists for the *previous* candle's WMA Fib 0 to be valid.
-                        if len(self.data_handler.five_min_data) >= 2 and \
-                           'wma_fib_0' in self.data_handler.five_min_data.columns and \
-                           not pd.isna(self.data_handler.five_min_data['wma_fib_0'].iloc[-2]): # Check for NaN in prev WMA Fib 0
-                            
-                            prev_candle_close = self.data_handler.five_min_data['close'].iloc[-2]
-                            prev_wma_fib_0 = self.data_handler.five_min_data['wma_fib_0'].iloc[-2]
-                            self.trade_manager.last_candle_below_fib = (prev_candle_close <= prev_wma_fib_0)
+                        # --- CRITICAL FIX: Update last_candle_below_fib for TradeManager ---
+                        # This should reflect the state of the *previous* candle
+                        if len(fib_levels_calculated) >= 2 and 'wma_fib_0' in fib_levels_calculated.columns:
+                            # Check the close of the second-to-last candle against the WMA Fib 0 level of that candle
+                            prev_candle_close = fib_levels_calculated['close'].iloc[-2]
+                            prev_wma_fib_0 = fib_levels_calculated['wma_fib_0'].iloc[-2]
+                            if not pd.isna(prev_wma_fib_0): # Only update if prev_wma_fib_0 is not NaN
+                                self.trade_manager.last_candle_below_fib = (prev_candle_close <= prev_wma_fib_0)
+                            else:
+                                self.trade_manager.last_candle_below_fib = False # Cannot determine, default to False
                             self.logger.print_info(f"DEBUG(Main): TradeManager.last_candle_below_fib set to: {self.trade_manager.last_candle_below_fib} (Prev Close: {prev_candle_close:.4f}, Prev WMA Fib 0: {prev_wma_fib_0:.4f})")
                         else:
-                            self.trade_manager.last_candle_below_fib = False # Default if not enough valid history
-                            self.logger.print_info("DEBUG(Main): Not enough valid data for previous candle's WMA Fib 0 or it's NaN. Setting last_candle_below_fib to False.")
+                            self.trade_manager.last_candle_below_fib = False # Default if not enough history
+                            self.logger.print_info("DEBUG(Main): Not enough data for last_candle_below_fib, setting to False.")
 
-                        # Check for trades (now self.data_handler.five_min_data should contain the WMA Fibs)
+                        # Check for trades (this will update position_manager.trade_history and .positions)
                         self.trade_manager.check_for_trades(
                             new_candle.iloc[0], # Pass the specific candle row
                             self.data_handler.five_min_data # Pass the full 5-min data for context
