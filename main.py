@@ -41,7 +41,7 @@ class TradingBot:
         self.tasks = []
         
         # Initialize LiveChart instance
-        self.live_chart = LiveChart(port=8051) # Ensure this matches your LiveChart's port
+        self.live_chart = LiveChart(config=self.config, port=8051) # Ensure this matches your LiveChart's port
 
         # Trade manager needs position manager and fib calculator
         self.trade_manager = TradeManager(

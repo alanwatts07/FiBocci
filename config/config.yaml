@@ -12,12 +12,42 @@ trading:
   profit_target_1: 0.03
   profit_target_2: 0.007
   cumulative_profit_target: 0.035
-  fib_entry_threshold: -0.003
-  fib_reset_threshold: 0.02
+  fib_entry_threshold: -0.005
+  fib_reset_threshold: 0.01
   max_candle_range: 0.016
   countdown_periods: 60
   require_fib50_cross: true
   lookback_periods: 24
+
+chart_styles:
+  fib_0_line:
+    color: "#FFFFFF" # Solid White
+    dash: "solid"    # Solid line
+    width: 2
+  fib_50_line:
+    color: "#FFFF00" # Dotted Yellow
+    dash: "dot"      # Dotted line
+    width: 1
+  entry_threshold_line:
+    color: "#FF0000" # Solid Red
+    dash: "solid"    # Solid line
+    width: 1
+  current_price_line:
+    color: "#00FF00" # Lime Green (unchanged from your original request)
+    dash: "dot"
+    width: 1
+  open_position_line:
+    color: "#00FFFF" # Cyan (unchanged)
+    dash: "dashdot"
+    width: 2
+  trade_path_win_line:
+    color: "#00FF00" # Green (unchanged)
+    dash: "dot"
+    width: 1
+  trade_path_loss_line:
+    color: "#FF0000" # Red (unchanged)
+    dash: "dot"
+    width: 1
 
 paths:
   #historical_data: '../price_data/5min_ohlc_data.csv'

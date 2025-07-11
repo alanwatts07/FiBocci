@@ -13,10 +13,10 @@ import traceback
 import pytz # Added for robust timezone handling
 
 class LiveChart:
-    def __init__(self, port=8050):
+    def __init__(self, config, port=8050):
         self.app = dash.Dash(__name__)
         self.port = port
-        
+        self.config = config
         self.positions = []  # Initialize open positions list
         self.trades = [] # List of completed trades
         self.df = pd.DataFrame(columns=['open', 'high', 'low', 'close', 'volume']) # Main DataFrame for completed candles
@@ -119,11 +119,28 @@ class LiveChart:
             
             return fig, trade_stats_layout, armed_status_layout, new_view_state_to_store
 
+
+    # modules/live_chart.py
+
+# ... (rest of LiveChart class structure) ...
+
     def _create_figure(self, df_data, fib_df_data, trades_data, positions_data, current_candle_data):
         """
         Create the plotly figure using the provided data (which are copies of the shared variables).
         """
         fig = make_subplots(rows=1, cols=1)
+
+        # Retrieve chart styles from config
+        styles = self.config.get('chart_styles', {}) # Use .get() with default empty dict for safety
+
+        # Styles for Fibonacci lines
+        fib_0_style = styles.get('fib_0_line', {'color': 'purple', 'dash': 'dot', 'width': 1})
+        fib_50_style = styles.get('fib_50_line', {'color': 'orange', 'dash': 'dot', 'width': 1})
+        entry_threshold_style = styles.get('entry_threshold_line', {'color': 'blue', 'dash': 'dot', 'width': 1})
+        current_price_style = styles.get('current_price_line', {'color': 'lime', 'dash': 'dot', 'width': 1})
+        open_position_style = styles.get('open_position_line', {'color': 'blue', 'dash': 'dashdot', 'width': 2})
+        trade_path_win_style = styles.get('trade_path_win_line', {'color': 'green', 'dash': 'dot', 'width': 1})
+        trade_path_loss_style = styles.get('trade_path_loss_line', {'color': 'red', 'dash': 'dot', 'width': 1})
 
         # Add completed candles (using df_data)
         if not df_data.empty:
@@ -162,7 +179,6 @@ class LiveChart:
             if current_candle_data['prices']:
                 latest_price_in_current_bucket = current_candle_data['prices'][-1]
                 
-                # Extend to current minute + 1 to ensure line visibility on the edge
                 end_line_x = datetime.now(pytz.utc).replace(second=0, microsecond=0) + pd.Timedelta(minutes=1)
                 
                 fig.add_trace(
@@ -170,7 +186,12 @@ class LiveChart:
                         x=[current_candle_data['timestamp'], end_line_x],
                         y=[latest_price_in_current_bucket, latest_price_in_current_bucket],
                         mode='lines',
-                        line=dict(color='lime', width=1, dash='dot'),
+                        # --- Apply Current Price Line Style ---
+                        line=dict(
+                            color=current_price_style['color'], 
+                            width=current_price_style['width'], 
+                            dash=current_price_style['dash']
+                        ),
                         name='Current Price Line'
                     ), row=1, col=1
                 )
@@ -184,7 +205,12 @@ class LiveChart:
                     y=fib_df_data['wma_fib_0'],
                     mode='lines',
                     name='WMA Fib 0',
-                    line=dict(dash='dot', width=1, color='purple'),
+                    # --- Apply Fib 0 Line Style ---
+                    line=dict(
+                        dash=fib_0_style['dash'], 
+                        width=fib_0_style['width'], 
+                        color=fib_0_style['color']
+                    ),
                     hovertemplate='WMA Fib 0: %{y:.4f}<extra></extra>'
                 ), row=1, col=1)
 
@@ -195,7 +221,12 @@ class LiveChart:
                     y=fib_df_data['wma_fib_50'],
                     mode='lines',
                     name='WMA Fib 50',
-                    line=dict(dash='dot', width=1, color='orange'),
+                    # --- Apply Fib 50 Line Style ---
+                    line=dict(
+                        dash=fib_50_style['dash'], 
+                        width=fib_50_style['width'], 
+                        color=fib_50_style['color']
+                    ),
                     hovertemplate='WMA Fib 50: %{y:.4f}<extra></extra>'
                 ), row=1, col=1)
 
@@ -206,7 +237,12 @@ class LiveChart:
                     y=fib_df_data['entry_threshold'],
                     mode='lines',
                     name='Entry Threshold',
-                    line=dict(dash='dot', width=1, color='blue'),
+                    # --- Apply Entry Threshold Line Style ---
+                    line=dict(
+                        dash=entry_threshold_style['dash'], 
+                        width=entry_threshold_style['width'], 
+                        color=entry_threshold_style['color']
+                    ),
                     hovertemplate='Entry Threshold: %{y:.4f}<extra></extra>'
                 ), row=1, col=1)
 
@@ -252,7 +288,12 @@ class LiveChart:
                     x=[entry_time_dt, exit_time_dt],
                     y=[trade['entry_price'], trade['exit_price']],
                     mode='lines',
-                    line=dict(color='green' if trade.get('profit', 0) > 0 else 'red', width=1, dash='dot'),
+                    # --- Apply Trade Path Line Style ---
+                    line=dict(
+                        color=trade_path_win_style['color'] if trade.get('profit', 0) > 0 else trade_path_loss_style['color'], 
+                        width=trade_path_win_style['width'], 
+                        dash=trade_path_win_style['dash']
+                    ),
                     name=f"Trade Path ({trade.get('profit', 0):.2%})",
                     showlegend=False
                 ), row=1, col=1
@@ -267,33 +308,46 @@ class LiveChart:
                 
                 current_price_for_open_pos_line = current_candle_data['prices'][-1] if current_candle_data['prices'] else entry_price 
 
+                current_profit_loss_pct = ((current_price_for_open_pos_line - entry_price) / entry_price) * 100 if entry_price != 0 else 0
+
                 fig.add_trace(
                     go.Scatter(
                         x=[entry_time_dt, current_time_for_open_pos],
                         y=[entry_price, current_price_for_open_pos_line],
                         mode='lines+markers',
                         name='Open Position', 
-                        line=dict(color='blue', dash='dashdot', width=2),
+                        # --- Apply Open Position Line Style ---
+                        line=dict(
+                            color=open_position_style['color'], 
+                            dash=open_position_style['dash'], 
+                            width=open_position_style['width']
+                        ),
                         marker=dict(
                             symbol='circle',
                             size=10,
-                            color='cyan',
+                            color=open_position_style['color'], # Use line color for marker too
                             line=dict(width=1, color='DarkSlateGrey')
                         ),
                         showlegend=True,
-                        hovertemplate=f"Open Position<br>Entry Time: {position['entry_time']}<br>Entry Price: {position['entry_price']:.4f}<br>Current Price: {current_price_for_open_pos_line:.4f}"
+                        hovertemplate=(
+                            f"Open Position<br>"
+                            f"Entry Time: {position['entry_time']}<br>"
+                            f"Entry Price: {entry_price:.4f}<br>"
+                            f"Current Price: {current_price_for_open_pos_line:.4f}<br>"
+                            f"Profit/Loss: {current_profit_loss_pct:.2f}%"
+                        )
                     ), row=1, col=1
                 )
 
         # Update layout
         fig.update_layout(
-            title_text="SOL/USDC Live Trading Chart",
+            title_text="SOL/USDC Live Trading Chart", 
             xaxis_rangeslider_visible=False,
             height=800,
             template='plotly_dark',
             paper_bgcolor='#1a1a1a',
             plot_bgcolor='#1a1a1a',
-            uirevision='constant',
+            uirevision='constant', 
             updatemenus=[{
                 'buttons': [
                     {'label': '1h', 'method': 'relayout','args': [{'xaxis.range': [datetime.now(pytz.utc) - timedelta(hours=1), datetime.now(pytz.utc)]}]},
