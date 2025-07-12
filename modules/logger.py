@@ -58,7 +58,7 @@ class BotLogger:
         """Print current status as a formatted console panel."""
         try:
             status_text = f"""
-[bold cyan]═══ Trading Bot Status ═══[/bold cyan]
+[bold cyan]═══ The Bottridge STATUS ═══[/bold cyan]
 Time: {datetime.now().strftime('%H:%M:%S')}
 Status: [green]{self.status_data['status']}[/green]
 Price: {f"${self.status_data['price']:.8f}" if self.status_data['price'] is not None else '-'}
