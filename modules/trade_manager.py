@@ -94,11 +94,25 @@ class TradeManager:
 
         # Check cumulative profit target first (highest priority exit)
         metrics = self.position_manager.get_position_metrics(current_price)
-        if (metrics['cumulative_profit'] >= self.config['trading']['cumulative_profit_target'] and
-            self._check_fib50_condition(five_min_data)): # Use existing method name here
-            self.logger.print_info(f"📈 Cumulative profit target met ({metrics['cumulative_profit']:.2%}). Closing all positions.")
+
+        should_trigger_cumulative_exit = False
+        if metrics['cumulative_profit'] >= self.config['trading']['cumulative_profit_target']:
+            if self.config['trading']['require_fib50_cross']:
+                # If require_fib50_cross is true, only exit if price is NOT above Fib 50
+                # (meaning it has crossed below or is at Fib 50)
+                if not self._is_price_above_fib50_for_holding(five_min_data):
+                    should_trigger_cumulative_exit = True
+                    self.logger.print_info(f"📈 Cumulative profit target met ({metrics['cumulative_profit']:.2%}) AND price is at/below WMA Fib 50. Closing all positions.")
+                else:
+                    self.logger.print_info(f"DEBUG: Cumulative profit target met, but price is ABOVE WMA Fib 50. Holding all positions due to require_fib50_cross.")
+            else:
+                # If require_fib50_cross is FALSE, exit purely on cumulative target
+                should_trigger_cumulative_exit = True
+                self.logger.print_info(f"📈 Cumulative profit target met ({metrics['cumulative_profit']:.2%}). Closing all positions.")
+
+        if should_trigger_cumulative_exit:
             self.position_manager.close_all_positions(current_price, current_time, 'cumulative_target')
-            return
+            return # Exit after closing all positions
 
         # Check individual positions for their specific targets
         for position in self.position_manager.positions[:]:
@@ -108,61 +122,69 @@ class TradeManager:
                 self.position_manager.close_position(position, current_price, current_time, exit_type)
 
     def _should_close_position(self, position, current_price, current_time, five_min_data):
-        """Determine if a single position should be closed based on its profit targets and fib50 condition"""
+        """
+        Determine if a single position should be closed.
+        This version adds a special "strong trend" check for profit_target_2.
+        """
+        # --- 1. Calculate Time and Determine the Active Profit Target ---
         entry_time = pd.to_datetime(position['entry_time'], utc=True)
         candles_elapsed_df = five_min_data[five_min_data.index > entry_time]
         candles_elapsed = len(candles_elapsed_df)
-        
         time_remaining = max(0, self.config['trading']['countdown_periods'] - candles_elapsed)
-        
+
         current_profit_pct = (current_price - position['entry_price']) / position['entry_price']
-        
-        current_target = (self.config['trading']['profit_target_1'] 
-                          if time_remaining > 0 
+
+        current_target = (self.config['trading']['profit_target_1']
+                          if time_remaining > 0
                           else self.config['trading']['profit_target_2'])
-        
-        self.logger.print_info(f"DEBUG: Pos {position['id']} - Current Profit: {current_profit_pct:.2%}, Target: {current_target:.2%}, Time Remaining (T1): {time_remaining} candles")
 
-        # Check if profit target is met first
-        if current_profit_pct >= current_target:
-            # If profit target 1 is met AND require_fib50_cross is true
-            if current_target == self.config['trading']['profit_target_1'] and \
-               self.config['trading']['require_fib50_cross']:
+        self.logger.print_info(f"DEBUG: Pos {position['id']} - Profit: {current_profit_pct:.2%}, Target: {current_target:.2%}, T1 Time Left: {time_remaining}")
+
+        # --- 2. Primary Gate: Is the Active Profit Target Met? ---
+        if current_profit_pct < current_target:
+            return False # If not, we don't need to check anything else.
+
+        # --- 3. NEW: Special Check for Target 2 "Strong Trend" ---
+        # This logic runs ONLY if the position is old enough to be on profit_target_2.
+        if time_remaining == 0:
+            self.logger.print_info(f"DEBUG: Pos {position['id']} on Target 2. Checking for strong trend hold...")
+            wma_fib_0 = five_min_data['wma_fib_0'].iloc[-1]
+
+            # Check if WMA Fib 0 is available and above the entry price
+            if not pd.isna(wma_fib_0) and wma_fib_0 > position['entry_price']:
+                self.logger.print_info(f"📈 DEBUG: STRONG TREND DETECTED for Pos {position['id']}.")
+                self.logger.print_info(f"       WMA Fib 0 ({wma_fib_0:.8f}) > Entry ({position['entry_price']:.8f})")
                 
-                # Check if current price is *above* WMA Fib 50.
-                # If it IS above, we *don't* close yet, so return False.
-                # This uses the original _check_fib50_condition method's name, but its logic needs to be adapted.
-                if self._is_price_above_fib50_for_holding(five_min_data): # New helper method below
-                    self.logger.print_info(f"DEBUG: Profit Target 1 ({current_target:.2%}) met, but price is ABOVE WMA Fib 50. Holding position.")
-                    return False # Hold if above Fib 50, waiting for drop below
+                # If the strong trend is active, HOLD as long as price is above WMA Fib 0.
+                if current_price > wma_fib_0:
+                    self.logger.print_info(f"       HOLDING, as Price ({current_price:.8f}) > WMA Fib 0.")
+                    return False # HOLD the position to ride the trend
                 else:
-                    # Price is NOT above WMA Fib 50 (it's at or below), so it's okay to close.
-                    self.logger.print_info(f"DEBUG: Profit Target 1 ({current_target:.2%}) met, and price is at/below WMA Fib 50. Closing.")
-                    return True 
-            
-            # If profit target 1 is met AND require_fib50_cross is FALSE, or if profit target 2 is met
-            else: 
-                # For target 2, or if fib50 cross not required for target 1,
-                # close the trade if the profit target is met.
-                # If the strategy applies the "drops back below Fib 50" rule to Target 2 as well,
-                # then you'd call self._check_fib50_condition(five_min_data) here.
-                # Assuming for now Target 2 closes directly once met, without the fib50 hold.
-                if current_target == self.config['trading']['profit_target_2']:
-                    self.logger.print_info(f"DEBUG: Profit Target 2 ({current_target:.2%}) met. Closing.")
-                    return True
-                else: # Fallback, should be caught by target specific checks
-                    return False
-        
-        return False # Profit target not met
+                    self.logger.print_info(f"       CLOSING, as Price ({current_price:.8f}) crossed below WMA Fib 0.")
+                    return True # SELL, price fell below the new dynamic support
 
+        # --- 4. Default Behavior (for Target 1, or if Target 2's strong trend check isn't met) ---
+        # This is the "hold above Fib 50" logic. It's the fallback for all other cases.
+        if not self.config['trading']['require_fib50_cross']:
+            self.logger.print_info(f"DEBUG: Profit target met. Closing (require_fib50_cross is False).")
+            return True
+
+        if self._is_price_above_fib50_for_holding(five_min_data):
+            self.logger.print_info(f"DEBUG: Profit target met, but holding as price is ABOVE WMA Fib 50.")
+            return False # HOLD the position
+        else:
+            self.logger.print_info(f"DEBUG: Profit target met and price is at/below WMA Fib 50. CLOSING.")
+            return True # CLOSE the position
+            
     def _is_price_above_fib50_for_holding(self, five_min_data):
         """
         Helper: Checks if the current candle's close price is strictly ABOVE WMA Fib 50.
         Used to determine if a trade should be HELD despite hitting PT1.
+        If WMA Fib 50 is not available, it defaults to holding (returning True) to prevent premature close.
         """
         if 'wma_fib_50' not in five_min_data.columns or five_min_data['wma_fib_50'].isnull().iloc[-1]:
-            self.logger.print_warning("🚨 WMA Fib 50 not available for current candle. Cannot check Fib 50 ABOVE condition for holding.")
-            return False 
+            self.logger.print_warning("🚨 WMA Fib 50 not available for current candle. Defaulting to HOLDING position (returning True) to prevent premature close.")
+            return True # If Fib 50 is not available, assume it's still above or unconfirmed, so continue holding.
 
         current_candle_close = five_min_data['close'].iloc[-1]
         wma_fib50_level = five_min_data['wma_fib_50'].iloc[-1]

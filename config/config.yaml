@@ -7,16 +7,16 @@ backtesting:
 
 trading:
   initial_balance: 10000.0
-  trade_size: 2000
-  max_positions: 4
+  trade_size: 5000
+  max_positions: 2
   profit_target_1: 0.03
-  profit_target_2: 0.007
+  profit_target_2: 0.008
   cumulative_profit_target: 0.035
   fib_entry_threshold: -0.009
   fib_reset_threshold: 0.01
   max_candle_range: 0.009
-  countdown_periods: 64
-  require_fib50_cross: true
+  countdown_periods: 32
+  require_fib50_cross: True
   lookback_periods: 64
 
 chart_styles:
