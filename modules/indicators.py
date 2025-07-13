@@ -10,33 +10,34 @@ class FibonacciCalculator:
         # self.logger = BotLogger()
 
     def calculate_fib_levels(self, df):
-        if len(df) < 42:
-            print(f"DEBUG(FibCalc): Not enough data for initial fibs ({len(df)} < 42). Returning original DF.")
+        if len(df) < 66: # Increased to ensure enough data for rolling WMA
+            print(f"DEBUG(FibCalc): Not enough data for WMA fibs ({len(df)} < 66).")
             return df
         
-        df_copy = df.copy() # Renamed to df_copy to avoid confusion with the input df
+        df_copy = df.copy()
         
         df_copy['highest_high'] = df_copy['high'].rolling(window=42).max()
         df_copy['lowest_low'] = df_copy['low'].rolling(window=42).min()
         
-        # Debugging intermediate steps
-        print(f"DEBUG(FibCalc): After highest/lowest. Latest highest_high: {df_copy['highest_high'].iloc[-1]}, lowest_low: {df_copy['lowest_low'].iloc[-1]}")
-        print(f"DEBUG(FibCalc): NaN count in highest_high: {df_copy['highest_high'].isnull().sum()}")
-
         diff = df_copy['highest_high'] - df_copy['lowest_low']
         df_copy['fib_0'] = df_copy['lowest_low']
-        df_copy['fib_50'] = df_copy['highest_high'] - (diff*0.5)
-
-        print(f"DEBUG(FibCalc): After fib_0/fib_50. Latest fib_0: {df_copy['fib_0'].iloc[-1]}, fib_50: {df_copy['fib_50'].iloc[-1]}")
-        print(f"DEBUG(FibCalc): NaN count in fib_0: {df_copy['fib_0'].isnull().sum()}")
+        df_copy['fib_50'] = df_copy['highest_high'] - (diff * 0.5)
         
-        # These rolling averages need 24 non-NaN values *after* fib_0/fib_50 are calculated
+        # Calculate the original WMA levels
         df_copy['wma_fib_0'] = df_copy['fib_0'].rolling(window=24).mean()
         df_copy['wma_fib_50'] = df_copy['fib_50'].rolling(window=24).mean()
-        
+
+        # --- NEW: APPLY THE CONFIGURABLE OFFSET ---
+        # Get offset from config, default to 0.0 if not present
+        offset_pct = self.config['trading'].get('wma_fib_0_offset_pct', 0.0)
+
+        # If an offset is defined in the config, apply it
+        if offset_pct > 0.0:
+            print(f"DEBUG(FibCalc): Applying {offset_pct:.2%} downward offset to WMA Fib 0.")
+            df_copy['wma_fib_0'] = df_copy['wma_fib_0'] * (1 - offset_pct)
+        # --- END OF NEW CODE ---
+
         print(f"DEBUG(FibCalc): After WMA fibs. Latest wma_fib_0: {df_copy['wma_fib_0'].iloc[-1]}, wma_fib_50: {df_copy['wma_fib_50'].iloc[-1]}")
-        print(f"DEBUG(FibCalc): NaN count in wma_fib_0: {df_copy['wma_fib_0'].isnull().sum()}")
-        print(f"DEBUG(FibCalc): Length of DF passed to fib_calculator: {len(df)}")
         
         return df_copy
 
